@@ -1,0 +1,101 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: crm_postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-crm_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-crm_password}
+      POSTGRES_DB: ${POSTGRES_DB:-crm_data}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docs/schemas/init_postgres.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-crm_user} -d ${POSTGRES_DB:-crm_data}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - crm_network
+
+  mongodb:
+    image: mongo:7
+    container_name: crm_mongodb
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGODB_USER:-crm_user}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGODB_PASSWORD:-crm_password}
+      MONGO_INITDB_DATABASE: ${MONGODB_DB:-crm_auth}
+    volumes:
+      - mongodb_data:/data/db
+      - ./docs/schemas/init_mongo.js:/docker-entrypoint-initdb.d/init.js:ro
+    ports:
+      - "27017:27017"
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - crm_network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: crm_backend
+    environment:
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=${POSTGRES_USER:-crm_user}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-crm_password}
+      - POSTGRES_DB=${POSTGRES_DB:-crm_data}
+      - MONGODB_HOST=mongodb
+      - MONGODB_PORT=27017
+      - MONGODB_USER=${MONGODB_USER:-crm_user}
+      - MONGODB_PASSWORD=${MONGODB_PASSWORD:-crm_password}
+      - MONGODB_DB=${MONGODB_DB:-crm_auth}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-your-super-secret-key-change-in-production}
+      - JWT_ALGORITHM=${JWT_ALGORITHM:-HS256}
+      - JWT_ACCESS_TOKEN_EXPIRE_MINUTES=${JWT_ACCESS_TOKEN_EXPIRE_MINUTES:-30}
+    volumes:
+      - invoice_pdfs:/app/invoices
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - crm_network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:8000/api}
+    container_name: crm_frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    networks:
+      - crm_network
+
+volumes:
+  postgres_data:
+  mongodb_data:
+  invoice_pdfs:
+
+networks:
+  crm_network:
+    driver: bridge
