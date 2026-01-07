@@ -74,16 +74,18 @@ const adminPasswordHash = '$2b$12$l8MbGhQ.q5bVLnspyW5sQecWCeytIaUQs7y/d2Eyt83X.s
 db.users.updateOne(
     { email: 'admin@example.com' },
     {
+        $set: {
+            password: adminPasswordHash,
+            updated_at: new Date()
+        },
         $setOnInsert: {
             username: 'admin',
             email: 'admin@example.com',
-            password: adminPasswordHash,
             first_name: 'System',
             last_name: 'Administrator',
             role: 'admin',
             is_active: true,
-            created_at: new Date(),
-            updated_at: new Date()
+            created_at: new Date()
         }
     },
     { upsert: true }
