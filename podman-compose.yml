@@ -45,6 +45,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+    image: crm-backend:latest
     container_name: crm_backend
     environment:
       - POSTGRES_HOST=postgres
@@ -83,6 +84,7 @@ services:
       dockerfile: Dockerfile
       args:
         VITE_API_URL: ${VITE_API_URL:-http://localhost:8000/api}
+    image: crm-frontend:latest
     container_name: crm_frontend
     ports:
       - "3000:80"
