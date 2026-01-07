@@ -68,15 +68,15 @@ roles.forEach(function(role) {
 });
 
 // Create default admin user (password: admin123)
-// Password hash for 'admin123' using bcrypt
-const adminPasswordHash = '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/X4.VTtYWKQTLmLmHe';
+// Password hash for 'admin123' using bcrypt (generated with bcrypt.hashpw)
+const adminPasswordHash = '$2b$12$l8MbGhQ.q5bVLnspyW5sQecWCeytIaUQs7y/d2Eyt83X.ssFJK./G';
 
 db.users.updateOne(
-    { email: 'admin@crm.local' },
+    { email: 'admin@example.com' },
     {
         $setOnInsert: {
             username: 'admin',
-            email: 'admin@crm.local',
+            email: 'admin@example.com',
             password: adminPasswordHash,
             first_name: 'System',
             last_name: 'Administrator',
@@ -90,5 +90,5 @@ db.users.updateOne(
 );
 
 print('MongoDB initialization completed successfully');
-print('Default admin user created: admin@crm.local / admin123');
+print('Default admin user created: admin@example.com / admin123');
 print('Roles created: admin, manager, staff, viewer');
